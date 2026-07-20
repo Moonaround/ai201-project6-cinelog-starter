@@ -1,11 +1,19 @@
 """Tests for the watchlist service."""
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
 from app import create_app, db
 from models import Film, User, WatchlistEntry
 from services.collection_service import FilmNotFoundError
-from services.watchlist_service import AlreadyInWatchlistError, add_to_watchlist
+from services.watchlist_service import (
+    AlreadyInWatchlistError,
+    NotInWatchlistError,
+    add_to_watchlist,
+    get_watchlist,
+    remove_from_watchlist,
+)
 
 
 @pytest.fixture
@@ -79,3 +87,47 @@ def test_add_to_watchlist_nonexistent_film_raises(app, sample_user):
 
         with pytest.raises(FilmNotFoundError):
             add_to_watchlist(user_id=sample_user, film_id=fake_film_id)
+
+
+def test_remove_from_watchlist_deletes_entry(app, sample_user, sample_film):
+    """Removing a saved film should delete its watchlist entry."""
+    with app.app_context():
+        add_to_watchlist(user_id=sample_user, film_id=sample_film)
+
+        assert remove_from_watchlist(sample_user, sample_film) is True
+        assert WatchlistEntry.query.filter_by(
+            user_id=sample_user, film_id=sample_film
+        ).first() is None
+
+
+def test_remove_from_watchlist_missing_entry_raises(app, sample_user, sample_film):
+    """Removing an unsaved film should report a domain-specific error."""
+    with app.app_context():
+        with pytest.raises(NotInWatchlistError):
+            remove_from_watchlist(sample_user, sample_film)
+
+
+def test_get_watchlist_returns_newest_first(app, sample_user):
+    """Recent discoveries should appear before older watchlist entries."""
+    with app.app_context():
+        older_film = Film(title="Alien", year=1979, genre="Horror")
+        newer_film = Film(title="Arrival", year=2016, genre="Sci-Fi")
+        db.session.add_all([older_film, newer_film])
+        db.session.commit()
+
+        older_entry = WatchlistEntry(
+            user_id=sample_user,
+            film_id=older_film.id,
+            date_added=datetime.now(timezone.utc) - timedelta(days=5),
+        )
+        newer_entry = WatchlistEntry(
+            user_id=sample_user,
+            film_id=newer_film.id,
+            date_added=datetime.now(timezone.utc),
+        )
+        db.session.add_all([older_entry, newer_entry])
+        db.session.commit()
+
+        watchlist = get_watchlist(sample_user)
+
+        assert [film["title"] for film in watchlist] == ["Arrival", "Alien"]
