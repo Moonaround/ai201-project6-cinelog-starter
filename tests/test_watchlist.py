@@ -131,3 +131,43 @@ def test_get_watchlist_returns_newest_first(app, sample_user):
         watchlist = get_watchlist(sample_user)
 
         assert [film["title"] for film in watchlist] == ["Arrival", "Alien"]
+
+
+def test_watchlist_endpoints_support_visibility_and_removal(
+    app, sample_user, sample_film
+):
+    """The API should persist visibility and remove the same entry."""
+    client = app.test_client()
+
+    add_response = client.post(
+        f"/watchlist/{sample_user}/add",
+        json={"film_id": sample_film, "public": False},
+    )
+    assert add_response.status_code == 201
+    assert add_response.get_json()["public"] is False
+
+    remove_response = client.delete(
+        f"/watchlist/{sample_user}/remove",
+        json={"film_id": sample_film},
+    )
+    assert remove_response.status_code == 200
+
+
+def test_add_watchlist_endpoint_maps_validation_errors(
+    app, sample_user, sample_film
+):
+    """Expected domain failures should produce useful client responses."""
+    client = app.test_client()
+    endpoint = f"/watchlist/{sample_user}/add"
+
+    assert client.post(
+        endpoint, json={"film_id": sample_film, "public": "yes"}
+    ).status_code == 400
+
+    assert client.post(endpoint, json={"film_id": sample_film}).status_code == 201
+    assert client.post(endpoint, json={"film_id": sample_film}).status_code == 409
+
+    missing_film_id = "00000000-0000-0000-0000-000000000000"
+    assert client.post(
+        endpoint, json={"film_id": missing_film_id}
+    ).status_code == 404
