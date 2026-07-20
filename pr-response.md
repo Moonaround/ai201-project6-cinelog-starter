@@ -103,6 +103,36 @@ route, and tests for integer film-ID assumptions; ran all tests; checked
 `git diff --check`; and verified the feature-only history is linear with no merge
 commits.
 
+## Commit History
+
+Final `git log --oneline` on `feature/watchlist` after the interactive rebase —
+14 commits in conventional format with no merge commits:
+
+```
+2bcb77a docs: document review responses and testing
+7ee32f9 test: cover watchlist endpoint responses
+94f73f2 test: cover watchlist removal and ordering
+f64d603 test: cover watchlist creation and deduplication
+0b39fab fix: return watchlist API validation errors
+991574a feat: remove films from watchlist
+2fa9da6 feat: allow explicit watchlist visibility
+e8824db fix: align watchlist film IDs with UUIDs
+d8c53ca fix: sort watchlist by newest entries
+a772ab8 test: cover missing film in add_to_watchlist
+80eb4ed fix: prevent duplicate watchlist entries
+6519f82 fix: rename save_to_watchlist to add_to_watchlist
+effa8d7 fix: update film retrieval method to use db.session.get in collection and watchlist services
+c4b10e1 feat: add watchlist model, service, and endpoints
+```
+
+Screenshot of the same output:
+
+![git log --oneline on feature/watchlist](docs/git-log.png)
+
+<!-- TODO: take a screenshot of `git log --oneline` in your terminal, save it as
+docs/git-log.png in the repo, then commit it. The image reference above will
+render once the file exists. -->
+
 ## Stretch Features
 
 ### Remove from watchlist
